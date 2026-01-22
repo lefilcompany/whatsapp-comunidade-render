@@ -3,6 +3,7 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 const cors = require('cors');
 const QRCode = require('qrcode');
+const puppeteer = require('puppeteer');
 
 const app = express();
 app.use(cors());
@@ -15,11 +16,12 @@ let currentQR = null;
 let connectionStatus = 'disconnected';
 let clientInfo = null;
 
-// Cliente WhatsApp
+// Cliente WhatsApp com Puppeteer configurado
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: './session' }),
   puppeteer: {
     headless: true,
+    executablePath: puppeteer.executablePath(),
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -27,6 +29,7 @@ const client = new Client({
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
+      '--single-process',
       '--disable-gpu'
     ]
   }
@@ -192,3 +195,4 @@ app.post('/api/messages/send', async (req, res) => {
 
 console.log('Iniciando WhatsApp...');
 client.initialize();
+
