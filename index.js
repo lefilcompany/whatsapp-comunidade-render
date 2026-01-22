@@ -3,8 +3,6 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 const cors = require('cors');
 const QRCode = require('qrcode');
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -12,42 +10,9 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// Funcao para encontrar o Chrome instalado
-function findChromePath() {
-  // Primeiro, verifica variavel de ambiente
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-  
-  // Caminhos possiveis no Render
-  const possiblePaths = [
-    '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome',
-    '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/chrome',
-    '/opt/render/project/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome'
-  ];
-  
-  for (const chromePath of possiblePaths) {
-    if (fs.existsSync(chromePath)) {
-      console.log('Chrome encontrado em:', chromePath);
-      return chromePath;
-    }
-  }
-  
-  // Tenta encontrar dinamicamente
-  const cacheDir = '/opt/render/.cache/puppeteer/chrome';
-  if (fs.existsSync(cacheDir)) {
-    const versions = fs.readdirSync(cacheDir);
-    if (versions.length > 0) {
-      const chromePath = path.join(cacheDir, versions[0], 'chrome-linux64', 'chrome');
-      if (fs.existsSync(chromePath)) {
-        console.log('Chrome encontrado dinamicamente:', chromePath);
-        return chromePath;
-      }
-    }
-  }
-  
-  throw new Error('Chrome nao encontrado. Verifique a instalacao do Puppeteer.');
-}
+// Caminho do Chrome - vem da variavel de ambiente definida no Dockerfile
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+console.log('Usando Chrome em:', chromePath);
 
 // Estado global
 let currentQR = null;
@@ -55,9 +20,6 @@ let connectionStatus = 'disconnected';
 let clientInfo = null;
 
 // Cliente WhatsApp
-const chromePath = findChromePath();
-console.log('Usando Chrome em:', chromePath);
-
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: './session' }),
   puppeteer: {
@@ -75,7 +37,6 @@ const client = new Client({
     ]
   }
 });
-
 
 // Servidor HTTP
 const server = app.listen(PORT, () => {
@@ -132,7 +93,6 @@ client.on('message', async (msg) => {
 });
 
 // ENDPOINTS
-
 app.get('/health', (req, res) => {
   res.json({
     status: connectionStatus,
@@ -158,7 +118,6 @@ app.get('/api/contacts', async (req, res) => {
         id: c.id._serialized,
         phone: c.id.user,
         name: c.name || c.pushname || c.id.user,
-        pushName: c.pushname,
         status: 'active',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -237,5 +196,3 @@ app.post('/api/messages/send', async (req, res) => {
 
 console.log('Iniciando WhatsApp...');
 client.initialize();
-
-
