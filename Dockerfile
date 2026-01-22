@@ -1,6 +1,5 @@
 FROM node:18-slim
 
-# Instalar dependencias do Chrome
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
